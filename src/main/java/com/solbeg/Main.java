@@ -10,7 +10,8 @@ import java.time.Month;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
+
+import static java.util.stream.Collectors.*;
 
 @RequiredArgsConstructor
 public class Main {
@@ -32,10 +33,8 @@ public class Main {
      * @return a list of Users
      */
     public List<User> findUsersByBirthdayMonth(Month birthdayMonth) {
-        return users.stream().filter(user -> user.getBirthDay().getMonth().equals(birthdayMonth)).toList();
-        // throw new ExerciseNotCompletedException();
+        return users.stream().filter(Objects::nonNull).filter(user -> user.getBirthDay().getMonth().equals(birthdayMonth)).toList();
     }
-
 
     /**
      * Returns a Map that stores users grouped by its email domain. A map key is String which is an
@@ -44,26 +43,15 @@ public class Main {
      * @return Map<String, List < User>> where key is email domain and value is a list of users
      */
     public Map<String, List<User>> groupUsersByEmailDomain() {
-        Map<String, List<User>> mapUsersByEmailDomain = new HashMap<>();
-        users.forEach(user -> {
-            String key = user.getEmail().substring(user.getEmail().indexOf("@")+ 1);
-            if (mapUsersByEmailDomain.containsKey(key)) {
-                mapUsersByEmailDomain.get(key).add(user);
-            } else {
-                mapUsersByEmailDomain.put(key, Stream.of(user).collect(Collectors.toList()));
-            }
-        });
-        return mapUsersByEmailDomain;
-
+        return users.stream().collect(groupingBy(user -> user.getEmail().substring(user.getEmail().indexOf("@") + 1)));
     }
-
 
     /**
      * @return total balance of all users
      */
     public BigDecimal calculateTotalBalance() {
-        return users.stream().reduce(new BigDecimal(0), (totralBalance, user) -> totralBalance.add(user.getBalance()), BigDecimal::add);
-
+        return users.stream().filter(Objects::nonNull).map(User::getBalance)
+                .reduce(new BigDecimal(0), BigDecimal::add);
     }
 
     /**
@@ -71,7 +59,6 @@ public class Main {
      */
     public List<User> sortByFirstAndLastNames() {
         return users.stream().sorted(Comparator.comparing(User::getFirstName).thenComparing(User::getLastName)).toList();
-        //throw new ExerciseNotCompletedException();
     }
 
     /**
@@ -80,7 +67,6 @@ public class Main {
      */
     public boolean containsUserWithEmailDomain(String emailDomain) {
         return users.stream().anyMatch(user -> user.getEmail().contains(emailDomain));
-
     }
 
     /**
@@ -91,11 +77,8 @@ public class Main {
      * @return user balance
      */
     public BigDecimal getBalanceByEmail(String email) {
-        Optional<User> searchedUser = users.stream().filter(user -> user.getEmail().equals(email)).findAny();
-        if(searchedUser.isEmpty())
-            throw new EntityNotFoundException("Cannot find User by email="+email);
-        else
-            return searchedUser.get().getBalance();
+        return users.stream().filter(Objects::nonNull).filter(user -> user.getEmail().equals(email)).findAny()
+                .orElseThrow(() -> new EntityNotFoundException("Cannot find User by email=" + email)).getBalance();
     }
 
     /**
@@ -105,27 +88,16 @@ public class Main {
      */
     public Map<Long, User> collectUsersById() {
         return users.stream().collect(Collectors.toMap(User::getId, Function.identity()));
-
     }
-
 
     /**
      * Returns a {@link Map} where key is {@link User#getLastName()} and values is a {@link Set} that contains first names
      * of all users with a specific last name.
      *
      * @return a map where key is a last name and value is a set of first names
-    */
+     */
     public Map<String, Set<String>> groupFirstNamesByLastNames() {
-        Map<String, Set<String>> firstNameMap = new HashMap<>();
-        users.forEach(user-> {
-            if (firstNameMap.containsKey(user.getLastName())) {
-                firstNameMap.get(user.getLastName()).add(user.getFirstName());
-            } else {
-                firstNameMap.put(user.getLastName(), Stream.of(user.getFirstName()).collect(Collectors.toSet()));
-            }
-        });
-        return firstNameMap;
-
+        return users.stream().collect(groupingBy(User::getLastName, mapping(User::getFirstName, toSet())));
     }
 }
 
